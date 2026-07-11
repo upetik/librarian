@@ -2,14 +2,15 @@ const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 
-const MAX_PAGES = 8;           // cap for PDF text/OCR — title, abstract, TOC live here
-const MAX_CHARS_FOR_AI = 6000; // cap prompt size sent to the AI model
-const MIN_TEXT_LEN = 50;       // below this, treat PDF as scanned/image-only
+// title, abstract and TOC live in the first few pages, so no need to read more
+const MAX_PAGES = 8;
+const MAX_CHARS_FOR_AI = 6000;
+const MIN_TEXT_LEN = 50; // less than this and we assume it's a scanned PDF
 
 let pdfjsLib = null;
 
-// Eagle's plugin window looks like a browser to pdf.js, so assets are loaded
-// by URL; in plain Node (tests) they're read from filesystem paths instead.
+// inside Eagle we're in a browser context and pdf.js wants file:// URLs;
+// node (used for local testing) is fine with plain paths
 const inBrowser = typeof window !== 'undefined';
 const asUrl = p => (inBrowser ? pathToFileURL(p).href : p);
 
@@ -26,7 +27,7 @@ async function openPdf(filePath) {
   const pdfjsRoot = path.dirname(require.resolve('pdfjs-dist/package.json'));
   return getPdfjs().getDocument({
     data: new Uint8Array(fs.readFileSync(filePath)),
-    isEvalSupported: false, // mitigates CVE-2024-4367 in pdfjs-dist 3.x
+    isEvalSupported: false, // CVE-2024-4367
     cMapUrl: asUrl(path.join(pdfjsRoot, 'cmaps')) + '/',
     cMapPacked: true,
     standardFontDataUrl: asUrl(path.join(pdfjsRoot, 'standard_fonts')) + '/',
@@ -58,7 +59,7 @@ async function extractPdf(filePath) {
       };
     }
 
-    // No usable text layer — fall back to rasterizing + OCR-ing the first pages.
+    // nothing readable, probably a scan, so OCR the pages
     return await ocrPdf(doc);
   } finally {
     await doc.destroy();
@@ -66,7 +67,6 @@ async function extractPdf(filePath) {
 }
 
 async function ocrPdf(doc) {
-  const { createCanvas } = require('@napi-rs/canvas');
   const { createWorker } = require('tesseract.js');
 
   const pageCount = Math.min(doc.numPages, MAX_PAGES);
@@ -77,11 +77,14 @@ async function ocrPdf(doc) {
     for (let i = 1; i <= pageCount; i++) {
       const page = await doc.getPage(i);
       const viewport = page.getViewport({ scale: 2.0 });
-      const canvas = createCanvas(viewport.width, viewport.height);
+      // use the window's own canvas so this works on every OS with no native binary
+      const canvas = document.createElement('canvas');
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
       const ctx = canvas.getContext('2d');
       await page.render({ canvasContext: ctx, viewport }).promise;
 
-      const { data: { text } } = await worker.recognize(canvas.toBuffer('image/png'));
+      const { data: { text } } = await worker.recognize(canvas);
       combinedText += text + '\n';
       if (combinedText.length >= MAX_CHARS_FOR_AI) break;
     }
@@ -112,7 +115,7 @@ async function extractEpub(filePath) {
     ? await new Promise((resolve, reject) => {
         epub.getChapter(firstChapter.id, (err, html) => {
           if (err) return reject(err);
-          resolve(String(html).replace(/<[^>]+>/g, ' ')); // strip tags, keep it simple
+          resolve(String(html).replace(/<[^>]+>/g, ' ')); // drop the html tags
         });
       })
     : '';
