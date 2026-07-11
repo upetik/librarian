@@ -1,9 +1,7 @@
 const { z } = require('zod');
 
-// Lenient on purpose: small local models (e.g. qwen2.5:3b via Ollama) don't
-// reliably respect array-length or string-length caps, and Eagle's AI SDK
-// rejects the whole response when validation fails. Accept what comes back
-// and clamp in code instead.
+// kept loose because small local models ignore length limits and the SDK
+// throws away the whole response if validation fails. clamp it ourselves below.
 const Schema = z.object({
   title: z.string().default('').describe('Clean, corrected title of the work'),
   authors: z.array(z.string()).default([]).describe('Full names of this document\'s authors, empty array if unknown'),
@@ -13,8 +11,8 @@ const Schema = z.object({
   summary: z.string().default('').describe('One-sentence summary of what this document is about'),
 });
 
-// Models sometimes return a whole comma-joined list as a single array element —
-// split first, then trim, dedupe (case-insensitive), and cap.
+// models sometimes cram a whole comma list into one array item, so split those
+// out first, then trim, dedupe and cap
 function toCleanList(value, max) {
   const seen = new Set();
   const out = [];
@@ -86,8 +84,8 @@ async function organize(extracted, existingTags) {
   const prompt = buildPrompt(extracted, existingTags);
   const { generateObject, generateText } = ai;
 
-  // First choice: structured output. Some providers/models (notably small
-  // Ollama models) don't support it — fall back to plain text + manual parse.
+  // try structured output first; a lot of small Ollama models don't support
+  // it, so fall back to plain text and parse the json ourselves
   try {
     const { object } = await generateObject({ model, schema: Schema, prompt });
     return clamp(object);

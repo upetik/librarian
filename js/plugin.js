@@ -1,10 +1,8 @@
 const path = require('path');
 const { fileURLToPath } = require('url');
 
-// Eagle's global `require` resolves relative paths against its own internal
-// folder — local modules must be loaded via absolute paths. index.html is
-// served from the plugin folder, so derive the root from the window URL
-// (available immediately, unlike plugin.path which only arrives on create).
+// require() here resolves relative to Eagle's own folder, not ours, so build
+// absolute paths from the window url (plugin.path isn't ready this early)
 const pluginRoot = path.dirname(fileURLToPath(window.location.href));
 
 const { extract } = require(path.join(pluginRoot, 'js', 'extract.js'));
@@ -13,8 +11,8 @@ const { renderReview, showError, showEmptyState } = require(path.join(pluginRoot
 
 const SUPPORTED_EXT = ['pdf', 'epub'];
 
-// Eagle may fire onPluginRun before onPluginCreate has completed, but the
-// eagle.* APIs only work after the create event — gate on it.
+// onPluginRun can fire before onPluginCreate, but the eagle.* APIs aren't
+// ready until create runs, so wait for it
 const pluginReady = new Promise(resolve => {
   eagle.onPluginCreate(plugin => {
     eagle.log.info('Librarian plugin created');

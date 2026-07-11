@@ -22,8 +22,8 @@ and click **Save**.
    *Eagle → Preferences → AI Models*. Any supported provider works:
    - **Free / local**: [Ollama](https://ollama.com) or LM Studio running on
      the user's machine (no API key, no cost).
-   - **Cloud**: OpenAI, Anthropic Claude, Google Gemini, DeepSeek or Qwen with
-     the user's own API key.
+   - **Cloud**: OpenAI, Google Gemini, DeepSeek or Qwen with the user's own
+     API key.
 
 ## How to test (for review staff)
 
@@ -34,7 +34,7 @@ and click **Save**.
      run `ollama pull qwen2.5:3b` in a terminal, then in Eagle add Ollama as a
      provider with API base `http://localhost:11434/v1` and set `qwen2.5:3b`
      as the default Language Model.
-   - **Cloud:** OpenAI, Claude, Gemini, DeepSeek or Qwen with your own key.
+   - **Cloud:** OpenAI, Gemini, DeepSeek or Qwen with your own key.
 2. **Select the files to organise.** In your Eagle library, click a **PDF or
    EPUB** file to select it. You can select several at once (Cmd/Ctrl-click or
    Shift-click) to process them as a batch.
