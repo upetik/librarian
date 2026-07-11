@@ -1,4 +1,4 @@
-const CONCURRENCY = 2; // OCR is CPU-heavy — don't run too many at once
+const CONCURRENCY = 2; // OCR is heavy, don't run too many at once
 
 // --- inline SVG icons (Lucide, stroke = currentColor) -----------------------
 
@@ -201,7 +201,7 @@ async function renderReview(items, processItem) {
     const busy = settled < items.length;
     setProgress(busy
       ? `Processing ${settled + 1} of ${items.length}…`
-      : `Done — review and save`, busy);
+      : `Done, review and save`, busy);
   };
   updateProgress();
 
@@ -235,7 +235,7 @@ async function renderReview(items, processItem) {
       parts.setStatus('Ready for review', 'ok');
       parts.fields.hidden = false;
     } catch (err) {
-      parts.setStatus(`Failed — ${err.message}`, 'error');
+      parts.setStatus(`Failed: ${err.message}`, 'error');
       parts.retryBtn.hidden = false;
       parts.retryBtn.onclick = () => processOne(item, true);
     } finally {
@@ -259,10 +259,28 @@ async function renderReview(items, processItem) {
       const authors = parts.authorsInput.value.split(',').map(s => s.trim()).filter(Boolean);
       const topics = parts.topicsInput.value.split(',').map(s => s.trim()).filter(Boolean);
       const tags = parts.tagsInput.value.split(',').map(s => s.trim()).filter(Boolean);
+      const summary = parts.summaryInput.value.trim();
 
       item.name = parts.titleInput.value.trim() || item.name;
-      item.tags = Array.from(new Set([...topics, ...tags]));
-      item.annotation = `${authors.join(', ')}\n\n${parts.summaryInput.value.trim()}`.trim();
+
+      // keep whatever tags the item already had, add the new ones on top
+      const seen = new Set();
+      item.tags = [...(item.tags || []), ...topics, ...tags].filter(t => {
+        const key = t.toLowerCase();
+        if (!t || seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      // don't wipe an existing note the user wrote themselves
+      const note = [authors.join(', '), summary].filter(Boolean).join('\n\n');
+      const existing = (item.annotation || '').trim();
+      if (!existing) {
+        item.annotation = note;
+      } else if (note && !(summary && existing.includes(summary))) {
+        item.annotation = `${note}\n\n${existing}`;
+      }
+
       await item.save();
       parts.setStatus('Saved', 'ok');
     }
