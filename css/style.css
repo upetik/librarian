@@ -1,3 +1,10 @@
+@font-face {
+  font-family: "Space Grotesk";
+  src: url("../fonts/SpaceGrotesk.ttf") format("truetype");
+  font-weight: 300 700;
+  font-display: swap;
+}
+
 :root,
 :root[data-theme="dark"] {
   --bg: #1f1f1f;
@@ -9,6 +16,7 @@
   --accent-contrast: #1f1f1f;
   --error-bg: #3a2a2d;
   --error-text: #e8a9b4;
+  color-scheme: dark;
 }
 
 /* Light theme: neutral grays matching Eagle's own preferences UI */
@@ -22,11 +30,12 @@
   --accent-contrast: #ffffff;
   --error-bg: #fbe9ed;
   --error-text: #a03050;
+  color-scheme: light;
 }
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 13px;
   background: var(--bg);
   color: var(--text);
@@ -59,8 +68,7 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-family: "Space Grotesk", "Helvetica Neue", "Arial Nova", Arial, sans-serif;
-  font-weight: 700;
+  font-weight: 500;
   font-size: 15px;
   letter-spacing: 0.12em;
 }
@@ -70,19 +78,20 @@ body {
   height: 30px;
 }
 
-/* title is hidden until the logo is hovered */
+/* title stays hidden and wipes in left-to-right when the logo is hovered */
 .title-text {
   opacity: 0;
-  transition: opacity 0.2s ease;
+  clip-path: inset(0 100% 0 0);
+  transition: clip-path 0.35s ease, opacity 0.35s ease;
 }
 
 #app-title:hover .title-text {
   opacity: 1;
+  clip-path: inset(0 0 0 0);
 }
 
 #progress-label {
   font-size: 12px;
-  font-family: ui-monospace, "SF Mono", Menlo, Monaco, "Cascadia Mono", monospace;
   color: var(--muted);
   text-align: center;
   transition: color 0.25s ease;
@@ -362,6 +371,12 @@ button:disabled {
 /* The hidden attribute must always win over the display rules above */
 [hidden] {
   display: none !important;
+}
+
+#save-all .icon svg,
+#theme-toggle .icon svg {
+  width: 20px;
+  height: 20px;
 }
 
 #save-all {

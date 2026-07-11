@@ -83,6 +83,12 @@ function field(labelText, input) {
   ]);
 }
 
+// grow a textarea to fit its content so there's no scrollbar
+function autoGrow(area) {
+  area.style.height = 'auto';
+  area.style.height = area.scrollHeight + 'px';
+}
+
 function setProgress(text, busy = false) {
   const label = document.getElementById('progress-label');
   label.textContent = text;
@@ -136,6 +142,7 @@ function buildRow(item, single) {
   const topicsInput = el('input', { type: 'text' });
   const tagsInput = el('input', { type: 'text' });
   const summaryInput = el('textarea', { rows: 2 });
+  summaryInput.addEventListener('input', () => autoGrow(summaryInput));
 
   const spinner = el('span', { className: 'spinner icon' });
   spinner.innerHTML = iconSvg('loader');
@@ -234,6 +241,7 @@ async function renderReview(items, processItem) {
         : (result.summary || '');
       parts.setStatus('Ready for review', 'ok');
       parts.fields.hidden = false;
+      autoGrow(parts.summaryInput); // size the box to the text, no scrollbar
     } catch (err) {
       parts.setStatus(`Failed: ${err.message}`, 'error');
       parts.retryBtn.hidden = false;
