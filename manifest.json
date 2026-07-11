@@ -1,0 +1,21 @@
+{
+    "id": "c8a0dbbb-2ee3-4913-a91f-c06375d17cde",
+    "version": "1.0.0",
+    "platform": "all",
+    "arch": "all",
+    "name": "Librarian",
+    "logo": "/logo.png",
+    "keywords": ["OCR", "PDF", "EPUB", "AI", "organize", "tags"],
+    "devTools": false,
+    "main": {
+        "url": "index.html",
+        "width": 620,
+        "height": 540,
+        "minWidth": 520,
+        "minHeight": 420,
+        "frame": true,
+        "resizable": true,
+        "backgroundColor": "#1f1f1f"
+    },
+    "dependencies": ["ai-sdk"]
+}

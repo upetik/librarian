@@ -1,0 +1,12 @@
+{
+  "name": "librarian-ai-organizer",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.53",
+    "epub2": "^3.0.2",
+    "pdfjs-dist": "^3.11.174",
+    "tesseract.js": "^5.1.0",
+    "zod": "^3.23.8"
+  }
+}
