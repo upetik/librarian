@@ -1,18 +1,16 @@
-# Librarian
+# Librarian ✿
 
-OCR and AI-powered title, author and tag organizer for your PDFs and EPUBs.
-
-*(Suggested Plugin Center description, 78 chars — copy the line above into the submission form.)*
+OCR and AI-powered title, author and tag organizer for Eagle's .pdfs & epubs 
 
 ---
 
-## What it does (single purpose)
+## What it does
 
-Librarian reads the PDF/EPUB files you select in your Eagle library, extracts
+Librarian ✿ reads selected .pdf & epub files in Eagle library, extracts
 their text (with OCR fallback for scanned PDFs), and uses your configured AI
 model to suggest a clean **title, authors, topics, tags and a one-sentence
-summary**. Nothing is written to your library until you review the suggestions
-and click **Save**.
+summary**. Nothing is written to the library until user reviews the suggestions
+and clicks **Save**.
 
 ## Requirements
 
@@ -25,7 +23,7 @@ and click **Save**.
    - **Cloud**: OpenAI, Google Gemini, DeepSeek or Qwen with the user's own
      API key.
 
-## How to test (for review staff)
+## How to
 
 1. **Set up the AI model.** Librarian uses Eagle's own **AI Models** plugin —
    no separate account or key is built into Librarian. Open
@@ -47,11 +45,11 @@ and click **Save**.
 6. Verify in Eagle: the item's name, tags and annotation were updated.
 
 Edge cases that are handled and can be tested:
-- No PDF/EPUB selected → friendly empty-state message.
-- AI Models plugin missing or no default model → warning with a
+✿ No file selected → friendly empty-state message.
+✿ AI Models plugin missing or no default model → warning with a
   "Open AI settings" button (`ai.open()`).
-- Scanned/image-only PDF → OCR fallback (slower; capped at the first 8 pages).
-- Corrupt file or unreadable scan → per-file error with a Retry button; other
+✿ Scanned/image-only PDF → OCR fallback (slower; capped at the first 8 pages).
+✿ Corrupt file or unreadable scan → per-file error with a Retry button; other
   files in the batch are unaffected.
 
 ## Privacy & data flow (disclosure)
@@ -80,4 +78,4 @@ Edge cases that are handled and can be tested:
 
 ## Support
 
-- Contact: https://github.com/upetik/librarian/issues
+✿ Contact: https://github.com/upetik/librarian/issues
