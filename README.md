@@ -1,80 +1,45 @@
 # Librarian ✿
 
-OCR and AI-powered title, author and tag organizer for Eagle's .pdfs & epubs 
-
----
+OCR and AI-powered title, author and tag organizer for Eagle's PDFs & EPUBs
 
 ## What it does
 
-Librarian ✿ reads selected .pdf & epub files in Eagle library, extracts
-their text (with OCR fallback for scanned PDFs), and uses your configured AI
-model to suggest a clean **title, authors, topics, tags and a one-sentence
-summary**. Nothing is written to the library until user reviews the suggestions
-and clicks **Save**.
+Librarian ✿ reads the PDF & EPUB files you select in your Eagle library, extracts their text (with OCR fallback for scanned PDFs), and uses your configured AI model to suggest a clean title, authors, topics, tags and a one-sentence summary. Nothing is written to the library until you review the suggestions and click Save.
 
 ## Requirements
 
-1. **Eagle "AI Models" plugin** (declared as a dependency; Eagle offers to
-   install it automatically on first run).
-2. **A configured default Language Model** in
-   *Eagle → Preferences → AI Models*. Any supported provider works:
-   - **Free / local**: [Ollama](https://ollama.com) or LM Studio running on
-     the user's machine (no API key, no cost).
-   - **Cloud**: OpenAI, Google Gemini, DeepSeek or Qwen with the user's own
-     API key.
+1. Eagle's **AI Models** plugin (declared as a dependency; Eagle offers to install it on first run).
+2. A default Language Model configured in Eagle → Preferences → AI Models. Any supported provider works:
+   - **Free / local:** [Ollama](https://ollama.com/) or LM Studio on your machine (no API key, no cost).
+   - **Cloud:** OpenAI, Google Gemini, DeepSeek or Qwen with your own API key.
 
-## How to
+## How to use
 
-1. **Set up the AI model.** Librarian uses Eagle's own **AI Models** plugin —
-   no separate account or key is built into Librarian. Open
-   *Eagle → Preferences → AI Models* and configure any Language Model:
-   - **Free, fully local (recommended):** install [Ollama](https://ollama.com),
-     run `ollama pull qwen2.5:3b` in a terminal, then in Eagle add Ollama as a
-     provider with API base `http://localhost:11434/v1` and set `qwen2.5:3b`
-     as the default Language Model.
-   - **Cloud:** OpenAI, Gemini, DeepSeek or Qwen with your own key.
-2. **Select the files to organise.** In your Eagle library, click a **PDF or
-   EPUB** file to select it. You can select several at once (Cmd/Ctrl-click or
-   Shift-click) to process them as a batch.
-3. **Open Librarian** from the plugin panel — it reads whatever you selected in
-   step 2.
-4. Each selected file shows a processing status, then editable fields (Title,
-   Authors, Topics, Tags, Summary) filled in by the AI. Edit anything you like.
-5. Click **Save** (one file — the window closes after saving) or **Save All**
-   (a batch; use **Skip** to leave a file out).
-6. Verify in Eagle: the item's name, tags and annotation were updated.
+1. Select one or more PDF or EPUB files in your Eagle library (Cmd/Ctrl-click or Shift-click for several).
+2. Open Librarian from the plugin panel — it reads whatever you selected.
+3. Each file shows a processing status, then editable fields (Title, Authors, Topics, Tags, Summary) filled in by the AI. Edit anything you like.
+4. Click **Save** (one file — the window closes after saving) or **Save All** (a batch; use Skip to leave a file out).
 
-Edge cases that are handled and can be tested:
-✿ No file selected → friendly empty-state message.
-✿ AI Models plugin missing or no default model → warning with a
-  "Open AI settings" button (`ai.open()`).
-✿ Scanned/image-only PDF → OCR fallback (slower; capped at the first 8 pages).
-✿ Corrupt file or unreadable scan → per-file error with a Retry button; other
-  files in the batch are unaffected.
+## Processing limits
 
-## Privacy & data flow (disclosure)
+- PDFs: only the first **8 pages** are read; about **6,000 characters** of extracted text go into the AI prompt.
+- EPUBs: only the first chapter is read.
+- Scanned/image-only PDFs use OCR fallback, which **currently supports English documents only**.
 
-- The plugin reads **only the files the user explicitly selects**.
-- Up to the first ~6,000 characters of extracted text are sent **only to the
-  AI provider the user configured themselves** in Eagle's AI Models
-  preferences (which may be a fully local model, in which case nothing leaves
-  the machine). Transport is handled entirely by Eagle's AI SDK.
-- The plugin makes **no other network requests**, stores nothing outside the
-  Eagle library, and collects no personal information.
-- Library changes (name, tags, annotation) happen **only after the user
-  clicks Save**.
+## Privacy & data flow
+
+- Librarian reads the content of **only the files you select**.
+- The AI prompt contains the document's **extracted text, plus its embedded title and author** (when present). If you chose a **cloud** model, this information is sent to that provider through Eagle's AI SDK. If you chose a **local** model (Ollama / LM Studio), nothing leaves your machine.
+- To reuse tags you already have, Librarian reads your library's existing tag names and matches them **locally, on your machine**. This tag list is **never transmitted** to any AI provider.
+- OCR runs fully **offline**: the OCR engine and the English language data are bundled in the plugin — no files are downloaded at runtime.
+- Library changes (name, tags, annotation) happen **only after you click Save**, and existing tags/notes on an item are kept, not overwritten.
 
 ## Technical notes
 
-- Text extraction: `pdfjs-dist` (text layer) with `tesseract.js` +
-  `@napi-rs/canvas` OCR fallback; `epub2` for EPUB metadata/text.
-- AI calls: Eagle AI SDK `generateObject` with a `zod` schema, with a
-  plain-text JSON fallback for models without structured-output support.
-- OCR and AI processing are capped (first 8 pages, 2 files concurrently) to
-  keep the plugin responsive.
-- Platforms: developed and tested on macOS. All native dependencies ship
-  prebuilt binaries for both macOS and Windows (no compilation at install
-  time). The bundled OCR engine makes the package large (~150 MB installed).
+- Text extraction: `pdfjs-dist` (text layer) with `tesseract.js` OCR fallback rendered on the browser canvas; `epub2` for EPUB metadata/text.
+- AI calls: Eagle AI SDK `generateObject` with a `zod` schema, plus a plain-text JSON fallback for models without structured output.
+- Processing is capped (first 8 pages, 2 files at a time) to stay responsive.
+- Cross-platform: no native binaries — works on macOS and Windows. Bundling the OCR engine + English language data makes the package fairly large.
 
 ## Support
 
