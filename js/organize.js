@@ -28,6 +28,15 @@ function toCleanList(value, max) {
   return out;
 }
 
+// if a suggested tag is basically one the library already has, use the existing
+// spelling instead of a near-duplicate. matching is done here, locally — the
+// library's tag list is never sent to the AI model.
+function reuseExistingTags(tags, existingTags) {
+  const norm = s => s.toLowerCase().replace(/[\s_-]+/g, '');
+  const known = new Map(existingTags.map(t => [norm(t), t]));
+  return tags.map(t => known.get(norm(t)) || t);
+}
+
 function clamp(object) {
   return {
     title: (object.title || '').trim(),
@@ -39,10 +48,10 @@ function clamp(object) {
   };
 }
 
-function buildPrompt(extracted, existingTags) {
-  const tagList = existingTags.slice(0, 50).join(', ');
-
+function buildPrompt(extracted) {
   return `You are cataloguing ONE document in a personal library. Read the extracted text below and fill in its metadata.
+
+The file is currently named "${extracted.fileName || 'unknown'}". That is only a file name (often lowercased, with underscores, or a publisher code) — do NOT use it as the title. Find the document's real title as it is actually printed in the text.
 
 Embedded title (if any): ${extracted.embeddedTitle || 'none'}
 Embedded author (if any): ${extracted.embeddedAuthor || 'none'}
@@ -53,11 +62,11 @@ ${extracted.text}
 """
 
 Fill in every field:
-- title: the document's real title, cleaned up.
-- authors: the names of the people who wrote THIS document. Look carefully for phrases like "written by", "by X, Y and Z", "edited by", or names listed on the title page / near the title, and extract each full name. Example: from "written by Mark F. Bear, Barry W. Connors, and Michael A. Paradiso" the authors are ["Mark F. Bear", "Barry W. Connors", "Michael A. Paradiso"].
+- title: the document's real title, exactly as printed on its title page or cover, in its original language, properly capitalised. Never return the file name or a reworded version of it.
+- authors: the names of the people who wrote THIS document. Look for phrases like "written by", "by X, Y and Z", "edited by", or names near the title. Example: from "written by Mark F. Bear, Barry W. Connors, and Michael A. Paradiso" the authors are ["Mark F. Bear", "Barry W. Connors", "Michael A. Paradiso"].
 - year: publication year, if identifiable.
 - topics: 1 to 3 broad subject areas.
-- tags: AT MOST 6 keywords that describe THIS document specifically. ${tagList ? `Prefer reusing tags from this list when (and only when) they genuinely apply to this document: ${tagList}. Never copy tags that don't apply.` : 'Invent concise, reusable keywords.'}
+- tags: AT MOST 6 specific keywords drawn only from THIS document's own content. Do not add unrelated subjects.
 - summary: one sentence saying what this document is about.`;
 }
 
@@ -81,31 +90,34 @@ async function organize(extracted, existingTags) {
   }
 
   const model = ai.getModel(defaultModel);
-  const prompt = buildPrompt(extracted, existingTags);
+  const prompt = buildPrompt(extracted);
   const { generateObject, generateText } = ai;
 
+  let result;
   // try structured output first; a lot of small Ollama models don't support
   // it, so fall back to plain text and parse the json ourselves
   try {
     const { object } = await generateObject({ model, schema: Schema, prompt });
-    return clamp(object);
+    result = clamp(object);
   } catch (structuredErr) {
     eagle.log.warn(`generateObject failed (${structuredErr.message}); falling back to text mode`);
-  }
-
-  const { text } = await generateText({
-    model,
-    prompt: `${prompt}
+    const { text } = await generateText({
+      model,
+      prompt: `${prompt}
 
 Respond with ONLY a JSON object (no markdown, no explanations) in exactly this shape:
 {"title": "...", "authors": ["..."], "year": "...", "topics": ["..."], "tags": ["..."], "summary": "..."}`,
-  });
-
-  const parsed = Schema.safeParse(parseJsonLoosely(text));
-  if (!parsed.success) {
-    throw new Error('AI returned JSON in an unexpected structure. Try Retry, or a larger model.');
+    });
+    const parsed = Schema.safeParse(parseJsonLoosely(text));
+    if (!parsed.success) {
+      throw new Error('AI returned JSON in an unexpected structure. Try Retry, or a larger model.');
+    }
+    result = clamp(parsed.data);
   }
-  return clamp(parsed.data);
+
+  // reuse the library's own tag spellings, matched locally
+  result.tags = toCleanList(reuseExistingTags(result.tags, existingTags), 6);
+  return result;
 }
 
 module.exports = { organize };

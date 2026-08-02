@@ -69,8 +69,19 @@ async function extractPdf(filePath) {
 async function ocrPdf(doc) {
   const { createWorker } = require('tesseract.js');
 
+  // everything the OCR engine needs is bundled in the plugin, so nothing is
+  // fetched from the network. english only.
+  const tessRoot = path.dirname(require.resolve('tesseract.js/package.json'));
+  const coreRoot = path.dirname(require.resolve('tesseract.js-core/package.json'));
+  const ocrOptions = {
+    workerPath: asUrl(path.join(tessRoot, 'dist', 'worker.min.js')),
+    corePath: asUrl(coreRoot),
+    langPath: asUrl(path.join(__dirname, '..', 'tessdata')),
+    gzip: true,
+  };
+
   const pageCount = Math.min(doc.numPages, MAX_PAGES);
-  const worker = await createWorker('eng');
+  const worker = await createWorker('eng', 1, ocrOptions);
 
   let combinedText = '';
   try {
@@ -130,9 +141,12 @@ async function extractEpub(filePath) {
 
 async function extract(item) {
   const ext = item.ext.toLowerCase();
-  if (ext === 'pdf') return extractPdf(item.filePath);
-  if (ext === 'epub') return extractEpub(item.filePath);
-  throw new Error(`Unsupported file type: .${ext}`);
+  let result;
+  if (ext === 'pdf') result = await extractPdf(item.filePath);
+  else if (ext === 'epub') result = await extractEpub(item.filePath);
+  else throw new Error(`Unsupported file type: .${ext}`);
+  result.fileName = item.name; // used to tell the AI what NOT to use as the title
+  return result;
 }
 
 module.exports = { extract };
