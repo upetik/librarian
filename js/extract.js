@@ -112,29 +112,21 @@ async function ocrPdf(doc) {
 }
 
 async function extractEpub(filePath) {
-  const EPub = require('epub2');
+  const { EPub } = require('epub2');
+  const epub = await EPub.createAsync(filePath);
 
-  const epub = await new Promise((resolve, reject) => {
-    const e = new EPub(filePath);
-    e.on('error', reject);
-    e.on('end', () => resolve(e));
-    e.parse();
-  });
+  const firstChapter = (epub.flow || [])[0];
+  let chapterText = '';
+  if (firstChapter) {
+    const html = await epub.getChapterAsync(firstChapter.id);
+    chapterText = String(html).replace(/<[^>]+>/g, ' '); // drop the html tags
+  }
 
-  const firstChapter = epub.flow[0];
-  const chapterText = firstChapter
-    ? await new Promise((resolve, reject) => {
-        epub.getChapter(firstChapter.id, (err, html) => {
-          if (err) return reject(err);
-          resolve(String(html).replace(/<[^>]+>/g, ' ')); // drop the html tags
-        });
-      })
-    : '';
-
+  const meta = epub.metadata || {};
   return {
     text: chapterText.slice(0, MAX_CHARS_FOR_AI),
-    embeddedTitle: epub.metadata.title || null,
-    embeddedAuthor: epub.metadata.creator || null,
+    embeddedTitle: meta.title || null,
+    embeddedAuthor: meta.creator || null,
     source: 'epub-metadata',
   };
 }
