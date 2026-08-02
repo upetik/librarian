@@ -16,7 +16,7 @@ Librarian ✿ reads the PDF & EPUB files you select in your Eagle library, extra
 ## How to use
 
 1. Select one or more PDF or EPUB files in your Eagle library (Cmd/Ctrl-click or Shift-click for several).
-2. Open Librarian from the plugin panel — it reads whatever you selected.
+2. Open Librarian ✿ from the plugin panel — it reads whatever you selected.
 3. Each file shows a processing status, then editable fields (Title, Authors, Topics, Tags, Summary) filled in by the AI. Edit anything you like.
 4. Click **Save** (one file — the window closes after saving) or **Save All** (a batch; use Skip to leave a file out).
 
@@ -28,9 +28,9 @@ Librarian ✿ reads the PDF & EPUB files you select in your Eagle library, extra
 
 ## Privacy & data flow
 
-- Librarian reads the content of **only the files you select**.
+- Librarian ✿ reads the content of **only the files you select**.
 - The AI prompt contains the document's **extracted text, plus its embedded title and author** (when present). If you chose a **cloud** model, this information is sent to that provider through Eagle's AI SDK. If you chose a **local** model (Ollama / LM Studio), nothing leaves your machine.
-- To reuse tags you already have, Librarian reads your library's existing tag names and matches them **locally, on your machine**. This tag list is **never transmitted** to any AI provider.
+- To reuse tags you already have, Librarian ✿ reads your library's existing tag names and matches them **locally, on your machine**. This tag list is **never transmitted** to any AI provider.
 - OCR runs fully **offline**: the OCR engine and the English language data are bundled in the plugin — no files are downloaded at runtime.
 - Library changes (name, tags, annotation) happen **only after you click Save**, and existing tags/notes on an item are kept, not overwritten.
 

@@ -28,7 +28,7 @@ async function run() {
     const items = selected.filter(i => SUPPORTED_EXT.includes(i.ext.toLowerCase()));
 
     if (items.length === 0) {
-      showEmptyState('Select one or more PDF or EPUB files in your library, then run this plugin again.');
+      showEmptyState('Select one or more PDF or EPUB files in your library, then run Librarian ✿ again.');
       return;
     }
 
