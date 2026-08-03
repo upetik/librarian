@@ -50,6 +50,7 @@ async function extractPdf(filePath) {
       if (text.length >= MAX_CHARS_FOR_AI) break;
     }
 
+    eagle.log.info(`Librarian PDF: extracted ${text.trim().length} chars of text-layer`);
     if (text.trim().length >= MIN_TEXT_LEN) {
       return {
         text: text.slice(0, MAX_CHARS_FOR_AI),
@@ -77,8 +78,10 @@ async function ocrPdf(doc) {
     workerPath: asUrl(path.join(tessRoot, 'dist', 'worker.min.js')),
     corePath: asUrl(coreRoot),
     langPath: asUrl(path.join(__dirname, '..', 'tessdata')),
+    workerBlobURL: false, // load the worker straight from the file instead of fetching it
     gzip: true,
   };
+  eagle.log.info(`Librarian OCR starting: ${JSON.stringify(ocrOptions)}`);
 
   const pageCount = Math.min(doc.numPages, MAX_PAGES);
   const worker = await createWorker('eng', 1, ocrOptions);

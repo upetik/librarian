@@ -89,6 +89,15 @@ function autoGrow(area) {
   area.style.height = area.scrollHeight + 'px';
 }
 
+// never let one item spin forever (a stuck OCR worker, an unresponsive model…)
+function withTimeout(promise, ms, message) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(message)), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
 function setProgress(text, busy = false) {
   const label = document.getElementById('progress-label');
   label.textContent = text;
@@ -231,7 +240,11 @@ async function renderReview(items, processItem) {
     parts.retryBtn.hidden = true;
     parts.fields.hidden = true;
     try {
-      const result = await processItem(item);
+      const result = await withTimeout(
+        processItem(item),
+        90000,
+        'Timed out. If this is a scanned PDF, OCR may have failed to start.'
+      );
       parts.titleInput.value = result.title || item.name;
       parts.authorsInput.value = (result.authors || []).join(', ');
       parts.topicsInput.value = (result.topics || []).join(', ');
