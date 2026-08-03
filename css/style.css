@@ -132,12 +132,11 @@ body {
 }
 
 .empty-illustration {
-  color: var(--muted);
-  opacity: 0.5;
+  color: #bbbbbb;
 }
 
 .empty-illustration svg {
-  width: 90px;
+  width: 20px;
   height: auto;
 }
 
