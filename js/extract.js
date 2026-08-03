@@ -2,10 +2,13 @@ const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 
-// title, abstract and TOC live in the first few pages, so no need to read more
-const MAX_PAGES = 8;
 const MAX_CHARS_FOR_AI = 6000;
-const MIN_TEXT_LEN = 50; // less than this and we assume it's a scanned PDF
+// scan a good chunk of pages for a text layer before giving up. front matter
+// (cover, title page) is often image-only, so looking at only the first few
+// pages would wrongly flag a normal book as "scanned".
+const TEXT_SCAN_PAGES = 15;
+const OCR_PAGES = 5; // OCR is slow, so do fewer pages when it's actually needed
+const MIN_TEXT_LEN = 50; // below this across all scanned pages, treat as scanned
 
 let pdfjsLib = null;
 
@@ -42,7 +45,7 @@ async function extractPdf(filePath) {
     const info = metadata?.info || {};
 
     let text = '';
-    const pageCount = Math.min(doc.numPages, MAX_PAGES);
+    const pageCount = Math.min(doc.numPages, TEXT_SCAN_PAGES);
     for (let i = 1; i <= pageCount; i++) {
       const page = await doc.getPage(i);
       const content = await page.getTextContent();
@@ -88,7 +91,7 @@ async function ocrPdf(doc) {
   };
   eagle.log.info(`Librarian OCR (browser build) starting: ${JSON.stringify(ocrOptions)}`);
 
-  const pageCount = Math.min(doc.numPages, MAX_PAGES);
+  const pageCount = Math.min(doc.numPages, OCR_PAGES);
   const worker = await createWorker('eng', 1, ocrOptions);
 
   let combinedText = '';
