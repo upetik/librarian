@@ -132,25 +132,26 @@ body {
 }
 
 .empty-illustration {
-  color: var(--text);
-  opacity: 0.85;
+  color: var(--muted);
+  opacity: 0.5;
 }
 
 .empty-illustration svg {
-  width: 150px;
+  width: 90px;
   height: auto;
 }
 
 #empty-title {
   font-family: "Space Grotesk", "Helvetica Neue", "Arial Nova", Arial, sans-serif;
   font-size: 19px;
-  font-weight: 700;
+  font-weight: 500;
   letter-spacing: 0.02em;
   color: var(--text);
+  max-width: 300px;
 }
 
 #empty-message {
-  max-width: 320px;
+  max-width: 400px;
 }
 
 #error-banner {
