@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { pathToFileURL } = require('url');
 
-const MAX_CHARS_FOR_AI = 6000;
+const MAX_CHARS_FOR_AI = 3500;
 // scan a good chunk of pages for a text layer before giving up. front matter
 // (cover, title page) is often image-only, so looking at only the first few
 // pages would wrongly flag a normal book as "scanned".
@@ -38,22 +38,26 @@ async function openPdf(filePath) {
 }
 
 async function extractPdf(filePath) {
+  const t0 = Date.now();
   const doc = await openPdf(filePath);
+  const tOpen = Date.now();
 
   try {
     const metadata = await doc.getMetadata().catch(() => null);
     const info = metadata?.info || {};
 
     let text = '';
+    let pagesRead = 0;
     const pageCount = Math.min(doc.numPages, TEXT_SCAN_PAGES);
     for (let i = 1; i <= pageCount; i++) {
       const page = await doc.getPage(i);
       const content = await page.getTextContent();
       text += content.items.map(it => it.str).join(' ') + '\n';
+      pagesRead = i;
       if (text.length >= MAX_CHARS_FOR_AI) break;
     }
 
-    eagle.log.info(`Librarian PDF: extracted ${text.trim().length} chars of text-layer`);
+    eagle.log.info(`Librarian PDF: ${text.trim().length} chars from ${pagesRead} pages | open ${tOpen - t0}ms, read ${Date.now() - tOpen}ms`);
     if (text.trim().length >= MIN_TEXT_LEN) {
       return {
         text: text.slice(0, MAX_CHARS_FOR_AI),
