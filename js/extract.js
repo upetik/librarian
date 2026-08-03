@@ -68,11 +68,16 @@ async function extractPdf(filePath) {
 }
 
 async function ocrPdf(doc) {
-  const { createWorker } = require('tesseract.js');
+  const tessRoot = path.dirname(require.resolve('tesseract.js/package.json'));
+
+  // Eagle runs as Electron, so the default tesseract build spawns a Node
+  // worker_thread, which Chromium blocks (SharedArrayBuffer needs cross-origin
+  // isolation) and it hangs forever. Load the browser build instead so it uses
+  // a plain Web Worker with the single-threaded core.
+  const { createWorker } = require(path.join(tessRoot, 'dist', 'tesseract.min.js'));
 
   // everything the OCR engine needs is bundled in the plugin, so nothing is
   // fetched from the network. english only.
-  const tessRoot = path.dirname(require.resolve('tesseract.js/package.json'));
   const coreRoot = path.dirname(require.resolve('tesseract.js-core/package.json'));
   const ocrOptions = {
     workerPath: asUrl(path.join(tessRoot, 'dist', 'worker.min.js')),
@@ -81,7 +86,7 @@ async function ocrPdf(doc) {
     workerBlobURL: false, // load the worker straight from the file instead of fetching it
     gzip: true,
   };
-  eagle.log.info(`Librarian OCR starting: ${JSON.stringify(ocrOptions)}`);
+  eagle.log.info(`Librarian OCR (browser build) starting: ${JSON.stringify(ocrOptions)}`);
 
   const pageCount = Math.min(doc.numPages, MAX_PAGES);
   const worker = await createWorker('eng', 1, ocrOptions);
