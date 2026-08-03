@@ -29,10 +29,19 @@ Librarian ✿ reads the PDF & EPUB files you select in your Eagle library, extra
 ## Privacy & data flow
 
 - Librarian ✿ reads the content of **only the files you select**.
-- The AI prompt contains the document's **extracted text, plus its embedded title and author** (when present). If you chose a **cloud** model, this information is sent to that provider through Eagle's AI SDK. If you chose a **local** model (Ollama / LM Studio), nothing leaves your machine.
+- The AI prompt contains the document's **extracted text, its embedded title and author, and the current Eagle item name / file name**. If you chose a **cloud** model, this content is sent to that provider through Eagle's AI SDK. If you chose a **local** model (Ollama / LM Studio), model processing stays on your device.
 - To reuse tags you already have, Librarian ✿ reads your library's existing tag names and matches them **locally, on your machine**. This tag list is **never transmitted** to any AI provider.
 - OCR runs fully **offline**: the OCR engine and the English language data are bundled in the plugin — no files are downloaded at runtime.
-- Library changes (name, tags, annotation) happen **only after you click Save**, and existing tags/notes on an item are kept, not overwritten.
+
+## Where changes are saved
+
+Librarian ✿ writes only to the **Eagle item**, never to the original file:
+
+- The suggested title becomes the **Eagle item name**.
+- Suggested topics and tags are merged into the **Eagle item's tags** (existing tags are preserved).
+- Authors and the summary are combined and added before the **Eagle item's annotation** (existing annotation text is preserved).
+- The original PDF or EPUB and its embedded metadata are **not modified**.
+- Nothing is written until you click **Save** or **Save All**.
 
 ## Technical notes
 
