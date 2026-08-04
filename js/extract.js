@@ -3,7 +3,7 @@ const path = require('path');
 const { pathToFileURL } = require('url');
 
 const MAX_CHARS_FOR_AI = 3500;
-const FRONT_PAGES = 12;
+const FRONT_PAGES = 10;
 const OCR_PAGES = 5; // OCR is slow, so do fewer pages when it's actually needed
 const MIN_TEXT_LEN = 50; // below this across all sampled pages, treat as scanned
 
