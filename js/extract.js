@@ -6,6 +6,14 @@ const MAX_CHARS_FOR_AI = 3500;
 const FRONT_PAGES = 10;
 const OCR_PAGES = 5; // OCR is slow, so do fewer pages when it's actually needed
 const MIN_TEXT_LEN = 50; // below this across all sampled pages, treat as scanned
+const MIN_WORDS = 20; // real text has actual words; garbage/empty glyphs don't
+
+// a real text layer has actual words. some PDFs return copy-pasteable-looking
+// glyphs that pdf.js can't map to Unicode, so length alone isn't enough.
+function looksLikeText(s) {
+  const words = s.match(/[A-Za-zÀ-ÿ]{3,}/g) || [];
+  return s.trim().length >= MIN_TEXT_LEN && words.length >= MIN_WORDS;
+}
 
 // which pages to read for a text sample: the front of the document plus a few
 // from deeper in. a book's cover / title pages are often image-only, so reading
@@ -64,8 +72,9 @@ async function extractPdf(filePath) {
       if (text.length >= MAX_CHARS_FOR_AI) break;
     }
 
-    eagle.log.info(`Librarian PDF: ${text.trim().length} chars from ${pagesRead} pages | open ${tOpen - t0}ms, read ${Date.now() - tOpen}ms | sample: ${JSON.stringify(text.trim().slice(0, 160))}`);
-    if (text.trim().length >= MIN_TEXT_LEN) {
+    const words = (text.match(/[A-Za-zÀ-ÿ]{3,}/g) || []).length;
+    eagle.log.info(`Librarian PDF: ${text.trim().length} chars, ${words} words from ${pagesRead} pages | open ${tOpen - t0}ms, read ${Date.now() - tOpen}ms | sample: ${JSON.stringify(text.trim().slice(0, 160))}`);
+    if (looksLikeText(text)) {
       return {
         text: text.slice(0, MAX_CHARS_FOR_AI),
         embeddedTitle: info.Title || null,

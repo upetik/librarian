@@ -223,14 +223,22 @@ async function renderReview(items, processItem) {
   const single = items.length === 1;
   const rows = new Map(); // item -> row parts
   let settled = 0;
+  let creep = 0; // smooth progress within the item currently being processed
 
   const updateProgress = () => {
-    const busy = settled < items.length;
-    setProgress(busy
-      ? `Processing ${settled + 1} of ${items.length}…`
-      : `Done, review and save`, busy);
+    if (settled >= items.length) {
+      setProgress('Done, review and save', false);
+      return;
+    }
+    const frac = Math.min(0.99, (settled + creep) / items.length);
+    setProgress(`Processing ${settled + 1} of ${items.length}… ${Math.round(frac * 100)}%`, true);
   };
   updateProgress();
+  const progressTimer = setInterval(() => {
+    if (settled >= items.length) return;
+    creep += (0.9 - creep) * 0.06; // ease toward ~90% while an item is in flight
+    updateProgress();
+  }, 300);
 
   items.forEach(item => {
     const parts = buildRow(item, single);
@@ -278,12 +286,15 @@ async function renderReview(items, processItem) {
     } finally {
       if (!isRetry) {
         settled++;
+        creep = 0; // reset the smooth progress for the next item
         updateProgress();
       }
     }
   }
 
   await runWithConcurrency(items, CONCURRENCY, item => processOne(item, false));
+  clearInterval(progressTimer);
+  updateProgress();
 
   saveAllBtn.onclick = async () => {
     saveAllBtn.disabled = true;
