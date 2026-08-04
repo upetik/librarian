@@ -241,7 +241,7 @@ async function renderReview(items, processItem) {
     parts.fields.hidden = true;
     try {
       const result = await withTimeout(
-        processItem(item),
+        processItem(item, (stage) => parts.setStatus(stage, 'busy')),
         90000,
         'Timed out. If this is a scanned PDF, OCR may have failed to start.'
       );
@@ -270,7 +270,7 @@ async function renderReview(items, processItem) {
   await runWithConcurrency(items, CONCURRENCY, item => processOne(item, false));
 
   const saveAllBtn = document.getElementById('save-all');
-  setButton(saveAllBtn, 'save', single ? 'Save' : 'Save All');
+  setButton(saveAllBtn, 'save', single ? 'Save' : 'Save all');
 
   saveAllBtn.onclick = async () => {
     saveAllBtn.disabled = true;
@@ -306,7 +306,7 @@ async function renderReview(items, processItem) {
       parts.setStatus('Saved', 'ok');
     }
     saveAllBtn.disabled = false;
-    setButton(saveAllBtn, 'save', single ? 'Save' : 'Save All');
+    setButton(saveAllBtn, 'save', single ? 'Save' : 'Save all');
     setProgress('Saved');
     if (single) {
       setTimeout(() => window.close(), 500);

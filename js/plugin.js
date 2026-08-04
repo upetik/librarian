@@ -59,13 +59,15 @@ async function run() {
 
     const existingTags = (await eagle.tag.get()).sort((a, b) => b.count - a.count).map(t => t.name);
 
-    await renderReview(items, async (item) => {
+    await renderReview(items, async (item, onStage) => {
       const tStart = Date.now();
+      onStage('Reading the document…');
       const extracted = await extract(item);
       if (extracted.source === 'empty') {
         throw new Error('No readable text found (image quality too low for OCR).');
       }
       const tExtracted = Date.now();
+      onStage(extracted.source === 'ocr' ? 'Reading scanned pages…' : 'Writing suggestions…');
       const result = await organize(extracted, existingTags);
       eagle.log.info(`Librarian timing: extract ${tExtracted - tStart}ms, AI ${Date.now() - tExtracted}ms`);
       return result;
