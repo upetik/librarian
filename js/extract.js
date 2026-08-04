@@ -3,12 +3,20 @@ const path = require('path');
 const { pathToFileURL } = require('url');
 
 const MAX_CHARS_FOR_AI = 3500;
-// scan a good chunk of pages for a text layer before giving up. front matter
-// (cover, title page) is often image-only, so looking at only the first few
-// pages would wrongly flag a normal book as "scanned".
-const TEXT_SCAN_PAGES = 15;
+const FRONT_PAGES = 12;
 const OCR_PAGES = 5; // OCR is slow, so do fewer pages when it's actually needed
-const MIN_TEXT_LEN = 50; // below this across all scanned pages, treat as scanned
+const MIN_TEXT_LEN = 50; // below this across all sampled pages, treat as scanned
+
+// which pages to read for a text sample: the front of the document plus a few
+// from deeper in. a book's cover / title pages are often image-only, so reading
+// only the front would wrongly flag a normal text PDF as "scanned" — sampling
+// the body catches the real text.
+function pagesToSample(numPages) {
+  const pages = new Set();
+  for (let i = 1; i <= Math.min(numPages, FRONT_PAGES); i++) pages.add(i);
+  [0.35, 0.5, 0.7].forEach(f => pages.add(Math.min(numPages, Math.max(1, Math.round(numPages * f)))));
+  return [...pages].sort((a, b) => a - b);
+}
 
 let pdfjsLib = null;
 
@@ -48,12 +56,11 @@ async function extractPdf(filePath) {
 
     let text = '';
     let pagesRead = 0;
-    const pageCount = Math.min(doc.numPages, TEXT_SCAN_PAGES);
-    for (let i = 1; i <= pageCount; i++) {
+    for (const i of pagesToSample(doc.numPages)) {
       const page = await doc.getPage(i);
       const content = await page.getTextContent();
       text += content.items.map(it => it.str).join(' ') + '\n';
-      pagesRead = i;
+      pagesRead++;
       if (text.length >= MAX_CHARS_FOR_AI) break;
     }
 
