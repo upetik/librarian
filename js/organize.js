@@ -6,7 +6,6 @@ const Schema = z.object({
   title: z.string().default('').describe('Clean, corrected title of the work'),
   authors: z.array(z.string()).default([]).describe('Full names of this document\'s authors, empty array if unknown'),
   year: z.union([z.string(), z.number()]).optional().describe('Publication year if identifiable'),
-  topics: z.array(z.string()).default([]).describe('1-3 broad subject areas, e.g. "Machine Learning", "Ancient History"'),
   tags: z.array(z.string()).default([]).describe('Up to 6 specific keyword tags relevant to THIS document only'),
   summary: z.string().default('').describe('One-sentence summary of what this document is about'),
 });
@@ -42,7 +41,6 @@ function clamp(object) {
     title: (object.title || '').trim(),
     authors: toCleanList(object.authors, 10),
     year: object.year != null ? String(object.year).trim() : undefined,
-    topics: toCleanList(object.topics, 3),
     tags: toCleanList(object.tags, 6),
     summary: (object.summary || '').trim().slice(0, 280),
   };
@@ -65,8 +63,7 @@ Fill in every field:
 - title: the document's real title, exactly as printed on its title page or cover, in its original language, properly capitalised. Never return the file name or a reworded version of it.
 - authors: the names of the people who wrote THIS document. Look for phrases like "written by", "by X, Y and Z", "edited by", or names near the title. Example: from "written by Mark F. Bear, Barry W. Connors, and Michael A. Paradiso" the authors are ["Mark F. Bear", "Barry W. Connors", "Michael A. Paradiso"].
 - year: publication year, if identifiable.
-- topics: 1 to 3 broad subject areas.
-- tags: AT MOST 6 specific keywords drawn only from THIS document's own content. Do not add unrelated subjects.
+- tags: AT MOST 6 specific keywords drawn only from THIS document's own content, including its main subject areas. Do not add unrelated subjects.
 - summary: one sentence saying what this document is about.`;
 }
 
@@ -106,7 +103,7 @@ async function organize(extracted, existingTags) {
       prompt: `${prompt}
 
 Respond with ONLY a JSON object (no markdown, no explanations) in exactly this shape:
-{"title": "...", "authors": ["..."], "year": "...", "topics": ["..."], "tags": ["..."], "summary": "..."}`,
+{"title": "...", "authors": ["..."], "year": "...", "tags": ["..."], "summary": "..."}`,
     });
     const parsed = Schema.safeParse(parseJsonLoosely(text));
     if (!parsed.success) {

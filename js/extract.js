@@ -57,7 +57,7 @@ async function extractPdf(filePath) {
       if (text.length >= MAX_CHARS_FOR_AI) break;
     }
 
-    eagle.log.info(`Librarian PDF: ${text.trim().length} chars from ${pagesRead} pages | open ${tOpen - t0}ms, read ${Date.now() - tOpen}ms`);
+    eagle.log.info(`Librarian PDF: ${text.trim().length} chars from ${pagesRead} pages | open ${tOpen - t0}ms, read ${Date.now() - tOpen}ms | sample: ${JSON.stringify(text.trim().slice(0, 160))}`);
     if (text.trim().length >= MIN_TEXT_LEN) {
       return {
         text: text.slice(0, MAX_CHARS_FOR_AI),

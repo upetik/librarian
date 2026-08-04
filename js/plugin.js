@@ -61,7 +61,7 @@ async function run() {
 
     await renderReview(items, async (item, onStage) => {
       const tStart = Date.now();
-      onStage('Reading the document…');
+      onStage('Gathering initial information…');
       const extracted = await extract(item);
       if (extracted.source === 'empty') {
         throw new Error('No readable text found (image quality too low for OCR).');
@@ -69,6 +69,7 @@ async function run() {
       const tExtracted = Date.now();
       onStage(extracted.source === 'ocr' ? 'Reading scanned pages…' : 'Writing suggestions…');
       const result = await organize(extracted, existingTags);
+      result.usedOcr = extracted.source === 'ocr';
       eagle.log.info(`Librarian timing: extract ${tExtracted - tStart}ms, AI ${Date.now() - tExtracted}ms`);
       return result;
     });

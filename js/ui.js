@@ -89,6 +89,16 @@ function autoGrow(area) {
   area.style.height = area.scrollHeight + 'px';
 }
 
+// last-resort title when the AI returns nothing: tidy up the file name
+function prettifyName(name) {
+  return String(name)
+    .replace(/\.[a-z0-9]+$/i, '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, c => c.toUpperCase());
+}
+
 // never let one item spin forever (a stuck OCR worker, an unresponsive model…)
 function withTimeout(promise, ms, message) {
   let timer;
@@ -148,7 +158,6 @@ function showError(message, actions = []) {
 function buildRow(item, single) {
   const titleInput = el('input', { type: 'text', value: item.name });
   const authorsInput = el('input', { type: 'text' });
-  const topicsInput = el('input', { type: 'text' });
   const tagsInput = el('input', { type: 'text' });
   const summaryInput = el('textarea', { rows: 2 });
   summaryInput.addEventListener('input', () => autoGrow(summaryInput));
@@ -159,6 +168,8 @@ function buildRow(item, single) {
   const statusText = el('span', {}, [document.createTextNode('Processing…')]);
   const status = el('div', { className: 'row-status' }, [spinner, statusIcon, statusText]);
 
+  const ocrBadge = el('span', { className: 'ocr-badge', textContent: 'OCR', hidden: true });
+
   const retryBtn = el('button', { hidden: true });
   setButton(retryBtn, 'retry', 'Retry');
   const skipBtn = el('button', { hidden: single, className: 'btn-skip' });
@@ -167,12 +178,12 @@ function buildRow(item, single) {
   const fields = el('div', { className: 'row-fields', hidden: true }, [
     field('Title', titleInput),
     field('Authors', authorsInput),
-    field('Topics', topicsInput),
     field('Tags', tagsInput),
     field('Summary', summaryInput),
   ]);
 
   const row = el('div', { className: 'review-row' }, [
+    ocrBadge,
     el('div', { className: 'row-name', textContent: item.name }),
     status,
     fields,
@@ -187,7 +198,7 @@ function buildRow(item, single) {
     if (state === 'error') statusIcon.innerHTML = iconSvg('alert');
   };
 
-  return { row, fields, setStatus, titleInput, authorsInput, topicsInput, tagsInput, summaryInput, retryBtn, skipBtn };
+  return { row, fields, setStatus, ocrBadge, titleInput, authorsInput, tagsInput, summaryInput, retryBtn, skipBtn };
 }
 
 async function runWithConcurrency(items, limit, worker) {
@@ -250,13 +261,13 @@ async function renderReview(items, processItem) {
         90000,
         'Timed out. If this is a scanned PDF, OCR may have failed to start.'
       );
-      parts.titleInput.value = result.title || item.name;
+      parts.titleInput.value = result.title || prettifyName(item.name);
       parts.authorsInput.value = (result.authors || []).join(', ');
-      parts.topicsInput.value = (result.topics || []).join(', ');
       parts.tagsInput.value = (result.tags || []).join(', ');
       parts.summaryInput.value = result.year
         ? `(${result.year}) ${result.summary || ''}`
         : (result.summary || '');
+      parts.ocrBadge.hidden = !result.usedOcr;
       parts.setStatus('Ready for review', 'ok');
       parts.fields.hidden = false;
       autoGrow(parts.summaryInput); // size the box to the text, no scrollbar
@@ -280,7 +291,6 @@ async function renderReview(items, processItem) {
     for (const [item, parts] of rows) {
       if (parts.skipped || parts.fields.hidden) continue; // skipped or never succeeded
       const authors = parts.authorsInput.value.split(',').map(s => s.trim()).filter(Boolean);
-      const topics = parts.topicsInput.value.split(',').map(s => s.trim()).filter(Boolean);
       const tags = parts.tagsInput.value.split(',').map(s => s.trim()).filter(Boolean);
       const summary = parts.summaryInput.value.trim();
 
@@ -288,7 +298,7 @@ async function renderReview(items, processItem) {
 
       // keep whatever tags the item already had, add the new ones on top
       const seen = new Set();
-      item.tags = [...(item.tags || []), ...topics, ...tags].filter(t => {
+      item.tags = [...(item.tags || []), ...tags].filter(t => {
         const key = t.toLowerCase();
         if (!t || seen.has(key)) return false;
         seen.add(key);
