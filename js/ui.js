@@ -234,6 +234,11 @@ async function renderReview(items, processItem) {
     };
   });
 
+  // set the save button up front so it shows the right icon/label while items
+  // are still processing (not the raw HTML fallback)
+  const saveAllBtn = document.getElementById('save-all');
+  setButton(saveAllBtn, 'save', single ? 'Save' : 'Save all');
+
   async function processOne(item, isRetry) {
     const parts = rows.get(item);
     parts.setStatus('Processing…', 'busy');
@@ -268,9 +273,6 @@ async function renderReview(items, processItem) {
   }
 
   await runWithConcurrency(items, CONCURRENCY, item => processOne(item, false));
-
-  const saveAllBtn = document.getElementById('save-all');
-  setButton(saveAllBtn, 'save', single ? 'Save' : 'Save all');
 
   saveAllBtn.onclick = async () => {
     saveAllBtn.disabled = true;
