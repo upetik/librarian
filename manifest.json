@@ -5,7 +5,7 @@
     "arch": "all",
     "name": "Librarian",
     "logo": "/logo.png",
-    "keywords": ["OCR", "PDF", "EPUB", "AI", "organize", "tags"],
+    "keywords": ["PDF", "EPUB", "AI", "organize", "tags", "metadata"],
     "devTools": false,
     "main": {
         "url": "index.html",

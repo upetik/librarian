@@ -4,7 +4,6 @@ const { pathToFileURL } = require('url');
 
 const MAX_CHARS_FOR_AI = 3500;
 const FRONT_PAGES = 10;
-const OCR_PAGES = 5; // OCR is slow, so do fewer pages when it's actually needed
 const MIN_TEXT_LEN = 50; // below this across all sampled pages, treat as scanned
 const MIN_WORDS = 20; // real text has actual words; garbage/empty glyphs don't
 
@@ -83,63 +82,12 @@ async function extractPdf(filePath) {
       };
     }
 
-    // nothing readable, probably a scan, so OCR the pages
-    return await ocrPdf(doc);
+    // no readable text layer — a scanned / image-only PDF. Librarian reads
+    // selectable text only, so there's nothing to work with here.
+    return { text: '', embeddedTitle: null, embeddedAuthor: null, source: 'scanned' };
   } finally {
     await doc.destroy();
   }
-}
-
-async function ocrPdf(doc) {
-  const tessRoot = path.dirname(require.resolve('tesseract.js/package.json'));
-
-  // Eagle runs as Electron, so the default tesseract build spawns a Node
-  // worker_thread, which Chromium blocks (SharedArrayBuffer needs cross-origin
-  // isolation) and it hangs forever. Load the browser build instead so it uses
-  // a plain Web Worker with the single-threaded core.
-  const { createWorker } = require(path.join(tessRoot, 'dist', 'tesseract.min.js'));
-
-  // everything the OCR engine needs is bundled in the plugin, so nothing is
-  // fetched from the network. english only.
-  const coreRoot = path.dirname(require.resolve('tesseract.js-core/package.json'));
-  const ocrOptions = {
-    workerPath: asUrl(path.join(tessRoot, 'dist', 'worker.min.js')),
-    corePath: asUrl(coreRoot),
-    langPath: asUrl(path.join(__dirname, '..', 'tessdata')),
-    workerBlobURL: false, // load the worker straight from the file instead of fetching it
-    gzip: true,
-  };
-  eagle.log.info(`Librarian OCR (browser build) starting: ${JSON.stringify(ocrOptions)}`);
-
-  const pageCount = Math.min(doc.numPages, OCR_PAGES);
-  const worker = await createWorker('eng', 1, ocrOptions);
-
-  let combinedText = '';
-  try {
-    for (let i = 1; i <= pageCount; i++) {
-      const page = await doc.getPage(i);
-      const viewport = page.getViewport({ scale: 2.0 });
-      // use the window's own canvas so this works on every OS with no native binary
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      const ctx = canvas.getContext('2d');
-      await page.render({ canvasContext: ctx, viewport }).promise;
-
-      const { data: { text } } = await worker.recognize(canvas);
-      combinedText += text + '\n';
-      if (combinedText.length >= MAX_CHARS_FOR_AI) break;
-    }
-  } finally {
-    await worker.terminate();
-  }
-
-  return {
-    text: combinedText.slice(0, MAX_CHARS_FOR_AI),
-    embeddedTitle: null,
-    embeddedAuthor: null,
-    source: combinedText.trim().length >= MIN_TEXT_LEN ? 'ocr' : 'empty',
-  };
 }
 
 async function extractEpub(filePath) {

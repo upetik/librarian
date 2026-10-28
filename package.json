@@ -5,7 +5,6 @@
   "dependencies": {
     "epub2": "^3.0.2",
     "pdfjs-dist": "^3.11.174",
-    "tesseract.js": "^5.1.0",
     "zod": "^3.23.8"
   }
 }

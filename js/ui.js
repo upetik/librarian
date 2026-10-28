@@ -1,4 +1,4 @@
-const CONCURRENCY = 2; // OCR is heavy, don't run too many at once
+const CONCURRENCY = 2; // don't hammer the model with too many items at once
 
 // --- inline SVG icons (Lucide, stroke = currentColor) -----------------------
 
@@ -100,6 +100,9 @@ function friendlyMessage(raw) {
   if (raw === 'NO_AI_MODEL_CONFIGURED') {
     return 'No AI model set.\nOpen Eagle → Preferences → AI Models, add a model, then Retry.';
   }
+  if (raw === 'SCANNED_DOCUMENT') {
+    return 'This looks like a scanned document (no selectable text).\nLibrarian reads PDFs with a text layer — you can tag this one manually.';
+  }
   return `Failed: ${raw}`;
 }
 
@@ -113,7 +116,7 @@ function prettifyName(name) {
     .replace(/\b\w/g, c => c.toUpperCase());
 }
 
-// never let one item spin forever (a stuck OCR worker, an unresponsive model…)
+// never let one item spin forever (an unresponsive or stuck model…)
 function withTimeout(promise, ms, message) {
   let timer;
   const timeout = new Promise((_, reject) => {
@@ -182,8 +185,6 @@ function buildRow(item, single) {
   const statusText = el('span', { className: 'status-text' }, [document.createTextNode('Processing…')]);
   const status = el('div', { className: 'row-status' }, [spinner, statusIcon, statusText]);
 
-  const ocrBadge = el('span', { className: 'ocr-badge', textContent: 'OCR', hidden: true });
-
   const retryBtn = el('button', { hidden: true });
   setButton(retryBtn, 'retry', 'Retry');
   const skipBtn = el('button', { hidden: single, className: 'btn-skip' });
@@ -197,7 +198,6 @@ function buildRow(item, single) {
   ]);
 
   const row = el('div', { className: 'review-row' }, [
-    ocrBadge,
     el('div', { className: 'row-name', textContent: item.name }),
     status,
     fields,
@@ -212,7 +212,7 @@ function buildRow(item, single) {
     if (state === 'error') statusIcon.innerHTML = iconSvg('alert');
   };
 
-  return { row, fields, setStatus, ocrBadge, titleInput, authorsInput, tagsInput, summaryInput, retryBtn, skipBtn };
+  return { row, fields, setStatus, titleInput, authorsInput, tagsInput, summaryInput, retryBtn, skipBtn };
 }
 
 async function runWithConcurrency(items, limit, worker) {
@@ -281,7 +281,7 @@ async function renderReview(items, processItem) {
       const result = await withTimeout(
         processItem(item, (stage) => parts.setStatus(stage, 'busy')),
         90000,
-        'Timed out. If this is a scanned PDF, OCR may have failed to start.'
+        'Timed out — the AI model took too long to respond. Retry, or try a smaller model.'
       );
       parts.titleInput.value = result.title || prettifyName(item.name);
       parts.authorsInput.value = (result.authors || []).join(', ');
@@ -289,7 +289,6 @@ async function renderReview(items, processItem) {
       parts.summaryInput.value = result.year
         ? `(${result.year}) ${result.summary || ''}`
         : (result.summary || '');
-      parts.ocrBadge.hidden = !result.usedOcr;
       parts.setStatus('Ready for review', 'ok');
       parts.fields.hidden = false;
       autoGrow(parts.summaryInput); // size the box to the text, no scrollbar

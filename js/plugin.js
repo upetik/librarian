@@ -63,13 +63,12 @@ async function run() {
       const tStart = Date.now();
       onStage('Gathering initial information…');
       const extracted = await extract(item);
-      if (extracted.source === 'empty') {
-        throw new Error('No readable text found (image quality too low for OCR).');
+      if (extracted.source === 'scanned') {
+        throw new Error('SCANNED_DOCUMENT');
       }
       const tExtracted = Date.now();
-      onStage(extracted.source === 'ocr' ? 'Reading scanned pages…' : 'Writing suggestions…');
+      onStage('Writing suggestions…');
       const result = await organize(extracted, existingTags);
-      result.usedOcr = extracted.source === 'ocr';
       eagle.log.info(`Librarian timing: extract ${tExtracted - tStart}ms, AI ${Date.now() - tExtracted}ms`);
       return result;
     });
