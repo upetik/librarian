@@ -11,6 +11,10 @@ const { renderReview, showError, showEmptyState } = require(path.join(pluginRoot
 
 const SUPPORTED_EXT = ['pdf', 'epub'];
 
+// remember the last selection we processed, so clicking the plugin again with
+// the same files just reopens the window instead of starting over
+let lastSelectionKey = null;
+
 // onPluginRun can fire before onPluginCreate, but the eagle.* APIs aren't
 // ready until create runs, so wait for it
 const pluginReady = new Promise(resolve => {
@@ -29,8 +33,17 @@ async function run() {
 
     if (items.length === 0) {
       showEmptyState('Select one or more PDF or EPUB files in your library, then run Librarian ✿ again.');
+      lastSelectionKey = null;
       return;
     }
+
+    // same files as last time and already shown? just reopen, don't reprocess
+    const selectionKey = items.map(i => i.id).sort().join(',');
+    if (selectionKey === lastSelectionKey &&
+        document.getElementById('review-list').children.length > 0) {
+      return;
+    }
+    lastSelectionKey = selectionKey;
 
     const ai = eagle.extraModule && eagle.extraModule.ai;
     if (!ai) {
@@ -56,6 +69,13 @@ async function run() {
       ]);
       return;
     }
+
+    // warm the model up in the background while we read the files, so it's
+    // already loaded by the time the first item needs it (cuts cold-start lag)
+    try {
+      const warm = ai.generateText({ model: ai.getModel(ai.getDefaultModel('chat')), prompt: 'ok' });
+      if (warm && warm.catch) warm.catch(() => {});
+    } catch (e) { /* warm-up is best-effort */ }
 
     const existingTags = (await eagle.tag.get()).sort((a, b) => b.count - a.count).map(t => t.name);
 
