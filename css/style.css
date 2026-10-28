@@ -129,10 +129,22 @@ body {
   justify-content: center;
   gap: 22px;
   text-align: center;
+  transition: background-color 0.25s ease, color 0.25s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* on hover the card lifts slightly and the flower turns */
+#empty-state:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+}
+
+#empty-state:hover .empty-illustration svg {
+  animation: spin 4s linear infinite;
 }
 
 .empty-illustration {
   color: #bbbbbb;
+  transition: color 0.25s ease;
 }
 
 .empty-illustration svg {
@@ -275,11 +287,18 @@ body {
 
 .row-status {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 7px;
   font-size: 12px;
+  line-height: 1.45;
   color: var(--muted);
   transition: color 0.25s ease, opacity 0.25s ease;
+}
+
+.row-status .icon,
+.row-status .spinner {
+  margin-top: 1px;
+  flex: none;
 }
 
 .icon {

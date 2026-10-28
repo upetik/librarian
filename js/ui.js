@@ -89,6 +89,17 @@ function autoGrow(area) {
   area.style.height = area.scrollHeight + 'px';
 }
 
+// turn a raw failure into a specific, actionable message for the row
+function friendlyMessage(raw) {
+  if (raw === 'CANT_REACH_MODEL') {
+    return 'Can\'t reach the AI model. Open your provider (e.g. the Ollama app) so it\'s running, check it in Eagle → Preferences → AI Models, then Retry.';
+  }
+  if (raw === 'NO_AI_MODEL_CONFIGURED') {
+    return 'No AI model set. Open Eagle → Preferences → AI Models, add a model, then Retry.';
+  }
+  return `Failed: ${raw}`;
+}
+
 // last-resort title when the AI returns nothing: tidy up the file name
 function prettifyName(name) {
   return String(name)
@@ -280,7 +291,7 @@ async function renderReview(items, processItem) {
       parts.fields.hidden = false;
       autoGrow(parts.summaryInput); // size the box to the text, no scrollbar
     } catch (err) {
-      parts.setStatus(`Failed: ${err.message}`, 'error');
+      parts.setStatus(friendlyMessage(err.message), 'error');
       parts.retryBtn.hidden = false;
       parts.retryBtn.onclick = () => processOne(item, true);
     } finally {

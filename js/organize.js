@@ -91,30 +91,43 @@ async function organize(extracted, existingTags) {
   const { generateObject, generateText } = ai;
 
   let result;
-  // try structured output first; a lot of small Ollama models don't support
-  // it, so fall back to plain text and parse the json ourselves
   try {
-    const { object } = await generateObject({ model, schema: Schema, prompt });
-    result = clamp(object);
-  } catch (structuredErr) {
-    eagle.log.warn(`generateObject failed (${structuredErr.message}); falling back to text mode`);
-    const { text } = await generateText({
-      model,
-      prompt: `${prompt}
+    // try structured output first; a lot of small Ollama models don't support
+    // it, so fall back to plain text and parse the json ourselves
+    try {
+      const { object } = await generateObject({ model, schema: Schema, prompt });
+      result = clamp(object);
+    } catch (structuredErr) {
+      eagle.log.warn(`generateObject failed (${structuredErr.message}); falling back to text mode`);
+      const { text } = await generateText({
+        model,
+        prompt: `${prompt}
 
 Respond with ONLY a JSON object (no markdown, no explanations) in exactly this shape:
 {"title": "...", "authors": ["..."], "year": "...", "tags": ["..."], "summary": "..."}`,
-    });
-    const parsed = Schema.safeParse(parseJsonLoosely(text));
-    if (!parsed.success) {
-      throw new Error('AI returned JSON in an unexpected structure. Try Retry, or a larger model.');
+      });
+      const parsed = Schema.safeParse(parseJsonLoosely(text));
+      if (!parsed.success) {
+        throw new Error('AI returned JSON in an unexpected structure. Try Retry, or a larger model.');
+      }
+      result = clamp(parsed.data);
     }
-    result = clamp(parsed.data);
+  } catch (err) {
+    throw asFriendlyError(err);
   }
 
   // reuse the library's own tag spellings, matched locally
   result.tags = toCleanList(reuseExistingTags(result.tags, existingTags), 6);
   return result;
+}
+
+// turn low-level AI/network errors into something the user can act on
+function asFriendlyError(err) {
+  const msg = (err && err.message) || String(err);
+  if (/fetch|network|ECONNREFUSED|ENOTFOUND|socket|connect|timeout|aborted/i.test(msg)) {
+    return new Error('CANT_REACH_MODEL');
+  }
+  return err;
 }
 
 module.exports = { organize };
