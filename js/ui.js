@@ -91,11 +91,14 @@ function autoGrow(area) {
 
 // turn a raw failure into a specific, actionable message for the row
 function friendlyMessage(raw) {
-  if (raw === 'CANT_REACH_MODEL') {
-    return 'Can\'t reach the AI model. Open your provider (e.g. the Ollama app) so it\'s running, check it in Eagle → Preferences → AI Models, then Retry.';
+  if (raw === 'PROVIDER_UNREACHABLE') {
+    return 'Librarian could not reach the AI model.\nPlease open your provider (for instance, your Ollama app), then Retry.';
+  }
+  if (raw === 'MODEL_ERROR') {
+    return 'Librarian could not reach the AI model.\nYour provider looks open — check it in Eagle → Preferences → AI Models, then Retry.';
   }
   if (raw === 'NO_AI_MODEL_CONFIGURED') {
-    return 'No AI model set. Open Eagle → Preferences → AI Models, add a model, then Retry.';
+    return 'No AI model set.\nOpen Eagle → Preferences → AI Models, add a model, then Retry.';
   }
   return `Failed: ${raw}`;
 }
@@ -176,7 +179,7 @@ function buildRow(item, single) {
   const spinner = el('span', { className: 'spinner icon' });
   spinner.innerHTML = iconSvg('loader');
   const statusIcon = el('span', { className: 'icon status-icon', hidden: true });
-  const statusText = el('span', {}, [document.createTextNode('Processing…')]);
+  const statusText = el('span', { className: 'status-text' }, [document.createTextNode('Processing…')]);
   const status = el('div', { className: 'row-status' }, [spinner, statusIcon, statusText]);
 
   const ocrBadge = el('span', { className: 'ocr-badge', textContent: 'OCR', hidden: true });

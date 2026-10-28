@@ -301,6 +301,10 @@ body {
   flex: none;
 }
 
+.status-text {
+  white-space: pre-line; /* let error tips break onto a second line */
+}
+
 .icon {
   display: inline-flex;
   line-height: 0;

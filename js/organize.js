@@ -90,13 +90,12 @@ async function organize(extracted, existingTags) {
   const prompt = buildPrompt(extracted);
   const { generateObject, generateText } = ai;
 
-  let result;
-  try {
+  const callModel = async () => {
     // try structured output first; a lot of small Ollama models don't support
     // it, so fall back to plain text and parse the json ourselves
     try {
       const { object } = await generateObject({ model, schema: Schema, prompt });
-      result = clamp(object);
+      return clamp(object);
     } catch (structuredErr) {
       eagle.log.warn(`generateObject failed (${structuredErr.message}); falling back to text mode`);
       const { text } = await generateText({
@@ -110,8 +109,14 @@ Respond with ONLY a JSON object (no markdown, no explanations) in exactly this s
       if (!parsed.success) {
         throw new Error('AI returned JSON in an unexpected structure. Try Retry, or a larger model.');
       }
-      result = clamp(parsed.data);
+      return clamp(parsed.data);
     }
+  };
+
+  let result;
+  try {
+    // a closed/unresponsive provider can leave the request hanging, so cap it
+    result = await withTimeout(callModel(), 60000);
   } catch (err) {
     throw asFriendlyError(err);
   }
@@ -121,13 +126,24 @@ Respond with ONLY a JSON object (no markdown, no explanations) in exactly this s
   return result;
 }
 
-// turn low-level AI/network errors into something the user can act on
+function withTimeout(promise, ms) {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error('AI_TIMEOUT')), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+}
+
+// map low-level AI errors to a sentinel the UI turns into a specific tip.
+// PROVIDER_UNREACHABLE = couldn't even connect (provider likely closed).
+// MODEL_ERROR = reached the provider but the model call failed (config issue).
 function asFriendlyError(err) {
   const msg = (err && err.message) || String(err);
-  if (/fetch|network|ECONNREFUSED|ENOTFOUND|socket|connect|timeout|aborted/i.test(msg)) {
-    return new Error('CANT_REACH_MODEL');
+  if (/AI returned JSON/i.test(msg)) return err; // keep the parse-specific message
+  if (msg === 'AI_TIMEOUT' || /fetch|network|ECONNREFUSED|ENOTFOUND|socket|refused|connect/i.test(msg)) {
+    return new Error('PROVIDER_UNREACHABLE');
   }
-  return err;
+  return new Error('MODEL_ERROR');
 }
 
 module.exports = { organize };
