@@ -237,19 +237,25 @@ async function renderReview(items, processItem) {
   const single = items.length === 1;
   const rows = new Map(); // item -> row parts
   let settled = 0;
+  let active = 0; // items currently being processed (incl. retries)
   let creep = 0; // smooth progress within the item currently being processed
 
   const updateProgress = () => {
-    if (settled >= items.length) {
+    // "done" only when nothing is running AND every item has been handled —
+    // a retry after the batch counts as working again
+    const working = active > 0 || settled < items.length;
+    if (!working) {
       setProgress('Done, review and save', false);
       return;
     }
-    const frac = Math.min(0.99, (settled + creep) / items.length);
-    setProgress(`Processing ${settled + 1} of ${items.length}… ${Math.round(frac * 100)}%`, true);
+    const pct = Math.round(Math.min(0.99, (settled + creep) / items.length) * 100);
+    setProgress(settled < items.length
+      ? `Processing ${settled + 1} of ${items.length}… ${pct}%`
+      : `Processing… ${pct}%`, true);
   };
   updateProgress();
   const progressTimer = setInterval(() => {
-    if (settled >= items.length) return;
+    if (active === 0) return;
     creep += (0.9 - creep) * 0.06; // ease toward ~90% while an item is in flight
     updateProgress();
   }, 300);
@@ -277,6 +283,8 @@ async function renderReview(items, processItem) {
     parts.setStatus('Processing…', 'busy');
     parts.retryBtn.hidden = true;
     parts.fields.hidden = true;
+    active++;
+    updateProgress();
     try {
       const result = await withTimeout(
         processItem(item, (stage) => parts.setStatus(stage, 'busy')),
@@ -297,11 +305,12 @@ async function renderReview(items, processItem) {
       parts.retryBtn.hidden = false;
       parts.retryBtn.onclick = () => processOne(item, true);
     } finally {
+      active--;
       if (!isRetry) {
         settled++;
         creep = 0; // reset the smooth progress for the next item
-        updateProgress();
       }
+      updateProgress();
     }
   }
 
